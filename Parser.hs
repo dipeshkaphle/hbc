@@ -6,9 +6,9 @@ import Text.Parsec.Token
 import Text.Parsec.Expr
 import Control.Monad
 
-data LogicalOp = And | Or | Implies | DoubleImplies deriving (Show)
+data LogicalOp = And | Or | Implies | DoubleImplies deriving (Show,Read)
 
-data CmpOp = Lt | Lte | Gt | Gte | Eq | NEq deriving Show
+data CmpOp = Lt | Lte | Gt | Gte | Eq | NEq deriving (Show,Read)
 
 
 
@@ -27,23 +27,13 @@ data Expression = IntNode Integer
                 | Multiplication Expression Expression
                 | Division Expression Expression
                 | Modulus Expression Expression
-                | Negation Expression deriving (Show)
-
-
-parseExprList :: Parser Expression
-parseExprList = liftM List $ sepBy parseTerm (comma lexer) --liftM makes the List Constructor Monadic
-{- this is the same as above
-parseExprList = do
-    arr <- sepBy parseTerm (comma lexer)
-    return $ List 
--}
--- same thing as above going on in parseTuple
-parseTuple :: Parser Expression
-parseTuple = liftM Tuple $ sepBy parseTerm (comma lexer)
+                | Negation Expression deriving (Show,Read)
 
 data Statement = PrintStatement Expression 
-    deriving (Show)
+               | Eval Expression
+    deriving (Show,Read)
 
+-- data FunctionBody = FunctionBody Expression Expression  deriving (Show,Read) --  
 
 
 lexer :: TokenParser()
@@ -51,8 +41,8 @@ lexer = makeTokenParser (haskellStyle {opStart = oneOf "+-*/%|&~=<>"
                                    , opLetter = oneOf "+-*/%|&~=<>"})
 
 
-parseExpression :: Parser Expression
-parseExpression = buildExpressionParser table parseTerm
+parseExpr :: Parser Expression
+parseExpr = buildExpressionParser table parseTerm
 
 -- for getting associativity right
 table = [[binary "=" (Assign) AssocRight]
@@ -79,44 +69,83 @@ parseNumber = do
         Left n -> return $ IntNode n
         Right n -> return $ DoubleNode n
 
--- to parse the strings passed
-parseString :: Monad m => String -> m Expression
-parseString str = do
+-- to parse the strings
+-- will identify if its a BoolNode as well
+parseString :: Parser Expression
+parseString = do
+    str <- identifier lexer
     return $ case str of
         "True" -> BoolNode True
         "False" -> BoolNode False
         otherwise -> Id str
 
-
+-- this parses term 
+-- expr is something like  term (operation) term
+-- term can also be an expression enclosed inside parens
+--
 parseTerm :: Parser Expression
-parseTerm = parens lexer parseExpression
+parseTerm = parens lexer parseExpr
             <|> parseNumber 
-            <|> (identifier lexer >>= parseString )
+            <|> parseString
 
 
 
 
+parseExprList :: Parser Expression
+parseExprList = liftM List $ sepBy parseTerm (comma lexer) --liftM makes the List Constructor Monadic
+{- this is the same as above
+parseExprList = do
+    arr <- sepBy parseTerm (comma lexer)
+    return $ List 
+-}
+-- same thing as above going on in parseTuple
+parseTuple :: Parser Expression
+parseTuple = liftM Tuple $ sepBy parseTerm (comma lexer)
+
+
+--  top level parser for Expression type
+--  combines tuple parser,list parser and normal expression parser
+--
+parseExpression :: Parser Expression
+parseExpression = do
+    s <- (try $ parseExpr)
+        <|> ( try $ parens lexer parseTuple)
+        <|> brackets lexer parseExprList
+    return s
+
+-- parses a print statement
+-- print x
+-- used when you want to print the output of an evaluation
 parsePrint :: Parser Statement
 parsePrint = do
     reserved lexer "print"
     expr <- parseExpression
     return $ PrintStatement expr
 
-
-parseInput :: Parser Expression
-parseInput = do
+-- parses Evaluation statement
+-- it is just an expression with no keyword in front of  it
+parseEvalStatement :: Parser Statement
+parseEvalStatement = do
     whiteSpace lexer
-    s <- (try $ parseExpression)
-        <|> ( try $ parens lexer parseTuple)
-        <|> brackets lexer parseExprList
+    s <- parseExpression
     eof
-    return s
+    return $ Eval s
 
-calculate str = 
-    let ret = parse parseInput "Wrong expr" str in
+-- parses statement
+-- Two  types
+-- a print statement
+-- and an eval statement which is just a statement that doesnt 
+-- begin with a keyword like print or others
+parseStatement :: Parser Statement
+parseStatement = (try $ parsePrint)
+                <|> parseEvalStatement
+
+-- parses string and returns the expression as string
+parseInput str = 
+    let ret = parse parseStatement "Wrong expr" str in
         case ret of
             Left e -> show e
             Right val -> show val
 
-
-readExpr = interact (unlines . (map calculate) . lines )
+-- for running interactively
+readExpr = interact (unlines . (map parseInput) . lines )
