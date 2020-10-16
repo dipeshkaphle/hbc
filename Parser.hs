@@ -6,7 +6,7 @@ import Text.Parsec.Token
 import Text.Parsec.Expr
 import Control.Monad
 
-data LogicalOp = And | Or | Implies | DoubleImplies deriving (Show,Read)
+data LogicalOp = And | Or | Xor | Implies | DoubleImplies deriving (Show,Read)
 
 data CmpOp = Lt | Lte | Gt | Gte | Eq | NEq deriving (Show,Read)
 
@@ -63,9 +63,10 @@ table = [[binary "=" (Assign) AssocRight]
         ,binary ">" (CmpNode Gt) AssocNone , binary ">=" (CmpNode Gte) AssocNone]
         ,[prefix "~" (Not)]
         ,[binary "&&"(LogicalBinOp And) AssocRight, binary "||" (LogicalBinOp Or) AssocRight
-         ,binary "->" (LogicalBinOp Implies) AssocLeft , binary "<->" (LogicalBinOp DoubleImplies)  AssocLeft]
+         ,binary "->" (LogicalBinOp Implies) AssocLeft , binary "<->" (LogicalBinOp DoubleImplies)  AssocLeft
+         ,binary "^" (LogicalBinOp Xor) AssocRight]
         ,[prefix "-" (Negation), prefix "+" (id) ]
-        ,[binary "^" (Power) AssocLeft]
+        ,[binary "**" (Power) AssocLeft]
         ,[binary "*" (Multiplication) AssocLeft, binary "/" (Division) AssocLeft,
          binary "%" (Modulus) AssocLeft]
         ,[binary "+" (Addition) AssocLeft, binary "-" (Subtraction) AssocLeft]]
