@@ -33,13 +33,29 @@ data Expression = IntNode Integer
 
 data Statement = PrintStatement Expression 
                | Eval Expression
+               | Define FunctionBody
     deriving (Show,Read)
 
-data FunctionBody = FunctionBody Expression Expression  deriving (Show,Read) -- the 2nd Expression after the 
+data FunctionBody = FunctionBody String Expression [Statement] deriving (Show,Read) -- the 2nd Expression after the 
 -- FunctionBody constructor should technically be just a Tuple
 -- Tuple [Expression] was included in Expression solely for this purpose
 -- We'll take care of this sort of weird representation of FunctionBody by using only
 -- the parseTuple for parsing the 1st expression
+
+-- i dont know if this is the best way to  represent a  function
+-- but this works. Change this if i find a better way
+-- we just represent the function as a string followed by a tuple,
+-- which is then followed by bunch of statements that are separated by
+-- semicolons and wrapped around braces({ and }) and the statements are all
+-- put into a list of statments and then we return the representation
+-- this is used in parseDefineStatement
+parseFunctionBody :: Parser FunctionBody
+parseFunctionBody = do
+    funcName <- identifier lexer
+    args <- parens lexer parseTuple
+    statements <- braces lexer $ sepEndBy parseStatement (semi lexer)
+    return $ FunctionBody  funcName args statements
+
 
 --------------------------------------------------------------------------------------
 -- this pretty much sets up identifier grammar and some other stuff as well
@@ -75,7 +91,7 @@ binary name fun assoc = Infix (do{ reservedOp lexer name; return fun }) assoc
 prefix  name fun      = Prefix (do{ reservedOp lexer name; return fun })
 postfix name fun      = Postfix (do{ reservedOp lexer name; return fun })
 
-
+-- parses a number , any type using the naturalOrFloat from parsec
 parseNumber :: Parser Expression
 parseNumber = do
     num <- naturalOrFloat lexer
@@ -159,6 +175,13 @@ parseEvalStatement = do
     s <- parseExpression
     return $ Eval s
 
+parseDefineStatement :: Parser Statement
+parseDefineStatement = do
+    reserved lexer "def"
+    functionBod <- parseFunctionBody
+    return $ Define functionBod
+
+
 -- parses statement
 -- Two  types
 -- a print statement
@@ -166,6 +189,7 @@ parseEvalStatement = do
 -- begin with a keyword like print or others
 parseStatement :: Parser Statement
 parseStatement = (try $ parsePrint)
+                <|> (try $ parseDefineStatement)
                 <|> parseEvalStatement
 
 -- parses string and returns the expression as string
