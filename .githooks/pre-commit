@@ -1,8 +1,9 @@
 #!/bin/bash
 
 #Finds all haskell files to be pushed
-mapfile -t haskell < <( git diff --cached --name-only grep -E "*.hs" )
+mapfile -t haskell < <( git diff --cached --name-only | grep -E "*.hs" )
 for i in "${haskell[@]}"; do
 	stylish-haskell -i $i
 	git add $i
 done
+echo "Haskell files formatted successfully"

@@ -11,4 +11,4 @@ jobs:
                         - name: lint-install
                           run: sudo apt-get install stylish-haskell
                         - name: lint-check
-                          run: ./lint-check.sh
+                          run: ./lintcheck.sh
