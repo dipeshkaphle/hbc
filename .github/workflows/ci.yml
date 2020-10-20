@@ -1,0 +1,14 @@
+name: CI
+
+on: ['push', 'pull_request']
+
+jobs:
+        ci:
+                runs-on: ubuntu-latest
+
+                steps:
+                        - uses: actions/checkout@v2
+                        - name: lint-install
+                          run: sudo apt-get install stylish-haskell
+                        - name: lint-check
+                          run: ./lint-check.sh
