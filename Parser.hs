@@ -8,7 +8,7 @@ import           Text.ParserCombinators.Parsec hiding (spaces)
 
 data LogicalOp = And | Or | Xor | Implies | DoubleImplies deriving (Show,Read)
 
-data CmpOp = Lt | Lte | Gt | Gte | Eq | NEq deriving (Show,Read)
+data CmpOp = Lt | Lte | Gt | Gte | Equal | NEqual deriving (Show,Read)
 
 
 
@@ -74,7 +74,7 @@ parseExpr = buildExpressionParser table parseTerm
 -- God bless the people who did this
 -- Cuz it wouldve been an absolute pain
 table = [[binary "=" (Assign) AssocRight]
-        ,[binary "==" (CmpNode Eq) AssocNone,binary "/=" (CmpNode NEq) AssocNone
+        ,[binary "==" (CmpNode Equal) AssocNone,binary "/=" (CmpNode NEqual) AssocNone
         ,binary "<" (CmpNode Lt) AssocNone , binary "<=" (CmpNode Lte) AssocNone
         ,binary ">" (CmpNode Gt) AssocNone , binary ">=" (CmpNode Gte) AssocNone]
         ,[prefix "~" (Not)]
