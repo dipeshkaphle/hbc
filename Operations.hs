@@ -1,5 +1,6 @@
 module Operations where
 
+import           Control.Exception
 import           Parser
 
 getCmpOperator :: Ord a => CmpOp -> (a -> a -> Bool)
@@ -21,7 +22,13 @@ getLogicalOperator op = case op of
 
 
 
+modulus :: (RealFrac a) => a -> a -> a
+modulus a 0 = throw DivideByZero
+modulus a b = a - ((fromIntegral $ truncate (a/b)) * b)
 
+divideWithZeroDivError :: (Eq a,Fractional a) => a -> a -> a
+divideWithZeroDivError a 0 = throw DivideByZero
+divideWithZeroDivError a b = a/b
 
 -- some logical operators that are not defined in haskell by default
 xor :: Bool -> Bool -> Bool
