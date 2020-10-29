@@ -1,9 +1,16 @@
 module Evaluator where
 
+import           Control.Monad.State
+import qualified Data.Map                      as M
 import           Operations
 import           Parser
+import           System.Environment
+import           System.IO
 import           Text.ParserCombinators.Parsec hiding (spaces)
 
+type SymbolTableVal = Either Expression FunctionBody
+
+type Result a = StateT (M.Map String SymbolTableVal) IO a
 
 data EvalResult = EvalResult {
                              int     :: Maybe Integer
@@ -15,19 +22,56 @@ makeEvalResult :: (Maybe Integer, Maybe Double, Maybe Bool) -> EvalResult
 makeEvalResult (x,y,z) = EvalResult {int = x, double=y, bool = z}
 
 
+varSymbolTable :: M.Map String SymbolTableVal
+varSymbolTable = M.fromList[
+                           ("pi",Left $ DoubleNode 3.14),
+                           ("e", Left $ DoubleNode (exp 1))]
 
 -- evaluation of different classes of expressions
-eval :: Expression -> EvalResult
-eval (IntNode n)    = makeEvalResult (Just n, Nothing, Nothing)
-eval (BoolNode b)   = makeEvalResult (Nothing,Nothing,Just b)
-eval (DoubleNode n) = makeEvalResult (Nothing,Just n, Nothing)
-eval (Not expr)     = makeEvalResult $ (Nothing, Nothing, fmap not (bool (eval expr)))
+eval :: Expression -> Result EvalResult
+eval (IntNode n)    = return $ makeEvalResult (Just n, Nothing, Nothing)
+eval (BoolNode b)   = return $ makeEvalResult (Nothing,Nothing,Just b)
+eval (DoubleNode n) = return $  makeEvalResult (Nothing,Just n, Nothing)
+eval (Not expr)     = do
+    evaluatedExpr <- eval expr
+    return $ makeEvalResult $ (Nothing, Nothing, fmap not (bool (evaluatedExpr)))
+
+eval (Id str) = do
+    varTable <- get
+    case M.lookup str varTable of
+        Nothing -> error ("Variable "++str ++ " isnt defined")
+        Just a  -> case a of
+            (Right func) -> error "Call function with format foo(a,b)"
+            (Left val)   -> eval val
+
+
+eval (Assign str expr) = do
+    ans      <- eval expr
+    let getStringFromId (Id name) = name
+        mod = \x -> modify $ (M.insert (getStringFromId str) x)
+    case ans of
+        EvalResult {int= Just n}    -> mod $ Left $ IntNode n
+        EvalResult {double= Just n} -> mod $ Left $ DoubleNode n
+        EvalResult {bool = Just b}  -> mod $ Left $ BoolNode b
+    return ans
+
+eval (LogicalBinOp op expr1 expr2) = do
+    val1 <- eval expr1
+    val2 <- eval expr2
+    let operationToDo = getLogicalOperator op
+        f p q = operationToDo p q
+        g = makeEvalResult
+        x =  case (val1,val2) of
+         (EvalResult {bool = Just p}, EvalResult {bool = Just q}) -> Just $ f p q
+         otherwise                                                -> Nothing
+     in return $ g (Nothing, Nothing, x)
+
 -- Make comparision between numbers
 -- the numbers can be int or double
-eval (CmpNode op expr1 expr2) =
-    let val1 = eval expr1
-        val2 = eval expr2
-        operation = getCmpOperator op
+eval (CmpNode op expr1 expr2) = do
+    val1 <- eval expr1
+    val2 <- eval expr2
+    let operation = getCmpOperator op
         convertToDouble = fmap fromIntegral
         p1   = operation <$> (convertToDouble (int val1)) <*> (convertToDouble (int val2))
         p2   = operation <$> (convertToDouble (int val1)) <*> (double val2)
@@ -37,15 +81,15 @@ eval (CmpNode op expr1 expr2) =
         res
           | ((length cmpResult) == 0) = Nothing
           | otherwise = (cmpResult !! 0)
-     in makeEvalResult (Nothing, Nothing, res )
+     in return $ makeEvalResult (Nothing, Nothing, res )
 
 eval (Addition expr1 expr2)  = commonEval (+) expr1 expr2
 eval (Subtraction expr1 expr2) = eval (Addition expr1 (Negation expr2))
-eval (Negation expr1) =
-    let val1 = eval expr1
-        g = makeEvalResult
+eval (Negation expr1) = do
+    val1 <- eval expr1
+    let g = makeEvalResult
         f a = fmap (negate) (Just a)
-     in case val1 of
+     in return $ case val1 of
          EvalResult {int = Just m}    -> g (f m, Nothing, Nothing)
          EvalResult {double = Just m} -> g (Nothing, f m, Nothing)
          otherwise                    -> g (Nothing, Nothing, Nothing)
@@ -59,10 +103,10 @@ eval (Modulus expr1 expr2) = commonEval (modulus) expr1 expr2
 -- So I cant quite use the commonEval function
 -- also used divideWithZeroDivError(defined in Operations.hs)
 -- so that we can throw errors when we divide by zero
-eval (Division expr1 expr2) =
-    let val1 = eval expr1
-        val2 = eval expr2
-        g = makeEvalResult
+eval (Division expr1 expr2) = do
+    val1 <- eval expr1
+    val2 <- eval expr2
+    let g = makeEvalResult
         f = fromIntegral
         h = divideWithZeroDivError
         x =  case (val1,val2) of
@@ -71,33 +115,36 @@ eval (Division expr1 expr2) =
                  (EvalResult {double = Just m},EvalResult {int = Just n})    -> Just (h m (f n))
                  (EvalResult {double = Just m},EvalResult {double = Just n}) -> Just (h m n)
                  otherwise                                                   -> Nothing
-    in g (Nothing,x,Nothing)
+    return $ g (Nothing,x,Nothing)
 
 -- this function is used so that i dont have to repeat code
 -- for multiplication and Addition and Power, i can just pass  the func to be
 -- + , *, **  and modulus and somewhat in divide as well and it'll evaluate properly
-commonEval func expr1 expr2 =
-    let val1 = eval expr1
-        val2 = eval expr2
-        f a b = fmap (func) (Just a) <*> (Just b)
+commonEval func expr1 expr2 = do
+    val1 <- eval expr1
+    val2 <- eval expr2
+    let f a b = fmap (func) (Just a) <*> (Just b)
         g = makeEvalResult
-     in case (val1,val2) of
+        ans = case (val1,val2) of
          (EvalResult {int = Just m},EvalResult {int = Just n})       -> g (fmap truncate
              (f (fromIntegral m) (fromIntegral n)),Nothing,Nothing)
          (EvalResult {int= Just m},EvalResult {double= Just n})      -> g (Nothing,f (fromIntegral m) n, Nothing)
          (EvalResult {double = Just m},EvalResult {int = Just n})    -> g (Nothing,f m (fromIntegral n), Nothing)
          (EvalResult {double = Just m},EvalResult {double = Just n}) -> g (Nothing , f m n, Nothing)
          otherwise                                                   -> g (Nothing, Nothing, Nothing)
+    return ans
 
-evalStatement :: Statement -> IO()
+
+
+evalStatement :: Statement -> Result ()
 -- we're evaluating a print statement
 -- dealing with multiple data types is complicated in haskell
 -- out eval function returns a Maybe for all three types we use packed into
 -- a record names EvalResult
 -- we just pattern match it and print
 evalStatement (PrintStatement expr)  =  do
-    let ans = eval expr
-        printVal val = putStrLn $ show val
+    ans <- eval expr
+    let printVal val = liftIO $ putStrLn $ show val
     case ans of
         EvalResult {int= Just n}    -> printVal n
         EvalResult {double= Just n} -> printVal n
@@ -116,14 +163,6 @@ evalStatement (PrintStatement expr)  =  do
 -- so we use seq to  do it
 -- https://wiki.haskell.org/Seq
 -- seq :: a->b->b
--- we're using evalAndDoNothing so that we can propagate errors
--- Had we done something like (eval expr) `seq` (return ()), the  errors wouldnt
--- get propagated and this would run successfully
--- So we not only had to force the evaluation of the expression but also
--- the evaluation of the errors that mightve popped in during the evaluation of
--- the expression and hence we use evalAndDoNothing as it forces evaluation of the errors
--- as well by trying to convert them to strings with show(which throws error).
-evalStatement (Eval expr) = (evalAndDoNothing expr) `seq` (return ())
 
 -- this had to be made so that we could propagate the errors
 -- in the evalStatement for Eval expr , if i had done just (eval expr) `seq` (return ())
@@ -132,14 +171,37 @@ evalStatement (Eval expr) = (evalAndDoNothing expr) `seq` (return ())
 -- So i had to do this so that not only there was just the evaluation of the expr
 -- but also the errors would get evaluated when i convert them to string with show
 -- Now with this, errors get propagated when we `seq` it with return ()
-evalAndDoNothing  expr =
-    let a = eval expr
-     in case a of
-        EvalResult {int = Just m}     -> show m
-        EvalResult {double = Just m } -> show m
-        EvalResult {bool = Just m}    -> show m
+evalStatement (Eval expr) = do
+     a <- eval expr
+     let f a = (show a) `seq` return ()
+     case a of
+        EvalResult {int = Just m}     -> f m
+        EvalResult {double = Just m } -> f m
+        EvalResult {bool = Just m}    -> f m
         otherwise                     -> error $ "Invalid expression " ++ show expr
 
-main = do
-    inp <- getLine
-    evalStatement $ parseInput inp
+
+-- takes in an input string and parses it and runs evalStatement on it
+evaluate :: String -> Result ()
+evaluate s = let parsedInput = parseInput s
+               in evalStatement parsedInput
+
+-- reads input with getContents and evaluates line by line
+evaluator :: Result ()
+-- evaluator = liftIO getContents >>= (mapM_ evaluate) . lines
+-- equivalent code but doesnt use getContents which kinda seems bad
+evaluator = do
+    liftIO $ putStr ">>>>"
+    liftIO $ hFlush stdout
+    a <- liftIO $ getLine
+    case a of
+        "" -> do
+            liftIO $ putStrLn "Done"
+        _  -> do
+            evaluate a
+            evaluator
+
+
+-- runs evaluator with our state (i.e symbolTable)
+--main = do
+ --   evalStateT (evaluator) varSymbolTable

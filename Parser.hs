@@ -139,7 +139,7 @@ parseExprList = liftM List $ sepBy parseExpression (comma lexer) --liftM makes t
 {- this is the same as above
 parseExprList = do
     arr <- sepBy parseTerm (comma lexer)
-    return $ List
+    return $ List arr
 -}
 -- same thing as above going on in parseTuple
 parseTuple :: Parser Expression
