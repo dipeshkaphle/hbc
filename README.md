@@ -1,4 +1,12 @@
 # Haskell Basic Calculator(hbc)
+<p align="center">
+  <a href="#"><img src="https://capsule-render.vercel.app/api?type=rect&color=8B008B&height=100&section=header&text=Haskell%20Basic%20Calculator(hbc)&fontSize=50%&fontColor=ffffff" alt="website title image"></a>
+  <h2 align="center">🧮 Calculator made using Haskell 🧮</h2>
+</p>
+
+<p align="center">
+<img src="https://img.shields.io/badge/language-Haskell-purple?style=for-the-badge"> 
+ </p>
 
 ## Note
 
@@ -8,6 +16,15 @@
 
 * Run `cabal build` to just build the executable
 * Run `cabal run` to build and run the executable
+### after building and running the executable sucessfully, you perform basic operations
+e.g - 
+#### print 5 + 5
+10
+
+#### a=10.0
+#### b=5.0
+#### print a/b
+2.0
 
 ## About the Project
 
