@@ -5,6 +5,7 @@
 
 <p align="center">
 <img src="https://img.shields.io/badge/language-Haskell-purple?style=for-the-badge"> 
+<img src="https://img.shields.io/badge/language-Shell-neon?style=for-the-badge"> 
  </p>
 
 ## Note
@@ -15,15 +16,10 @@
 
 * Run `cabal build` to just build the executable
 * Run `cabal run` to build and run the executable
-### after building and running the executable sucessfully, you perform basic operations
-### e.g - 
+> after building and running the executable sucessfully, you can perform basic operations
+#### e.g - 
 #### print 5 + 5
-10
-
-#### a=10.0
-#### b=5.0
-#### print a/b
-2.0
+#### 10
 
 ## 📌 About the Project
 
