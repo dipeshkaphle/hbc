@@ -54,7 +54,7 @@ for them. The operations that are parsed by our program as of now are :
 * `<->`  -> Logical Double Imply
 
 
-### 👨‍💻 Current State
+### Current State
 
 As of now, We are only able to parse the input we're
 provided from the user and generate the parse tree for it. It has
@@ -91,6 +91,9 @@ something seems essential and worth adding, we'll be attempting to
 put those also. Open to suggestions as well.
 
 ## 💥 Contributing
+
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+[![Open Source Love svg2](https://badges.frapsoft.com/os/v2/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
 
 - For contributing refer to the [Contributing.md](./Contributing.md)
 - Read the [code of conduct](./hbc/CODE_OF_CONDUCT.md)
