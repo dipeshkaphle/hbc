@@ -1,6 +1,6 @@
 <p align="center">
   <a href="#"><img src="https://capsule-render.vercel.app/api?type=rect&color=8B008B&height=100&section=header&text=Haskell%20Basic%20Calculator(hbc)&fontSize=50%&fontColor=ffffff" alt="website title image"></a>
-  <h2 align="center">🧮 Calculator made using Haskell 🧮</h2>
+  <h2 align="center">🧮 A mathematical scripting language made using Haskell 🧮</h2>
 </p>
 
 <p align="center">
