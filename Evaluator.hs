@@ -148,26 +148,27 @@ commonEval func expr1 expr2 = do
     -- built in functions will be trigonometric functions, logarithms,
     -- factorial, hyperbolic trigonometric functions and maybe some more
 ------------------------------------------------------------------------
-trigFunctionsEval trigFunc (Tuple arguments) =
+
+oneArgumentFunctionEval function functionName (Tuple arguments) =
     case (length arguments) of
         1 -> do
             val <- eval $ head arguments
             let g = makeEvalResult
                 f = fromIntegral
                 x = case val of
-                    (EvalResult {int = Just m})    -> (trigFunc <$> (Just (f m)))
-                    (EvalResult {double = Just m}) -> (trigFunc <$> (Just m))
+                    (EvalResult {int = Just m})    -> (function <$> (Just (f m)))
+                    (EvalResult {double = Just m}) -> (function <$> (Just m))
                     otherwise                      -> Nothing
             return $ g (Nothing,x , Nothing)
-        otherwise -> error $ "Wrong number of arguments to sin. Expected 1 but got "++ show (length arguments)
-
-
+        otherwise -> error $ "Wrong number of arguments to "++ functionName++ ". Expected 1 but got "++ show (length arguments)
 
 evalFunctions :: Expression -> Result EvalResult
-evalFunctions (Invoke "sin" arguments) = trigFunctionsEval sin arguments
-evalFunctions (Invoke "cos" arguments) = trigFunctionsEval cos arguments
-evalFunctions (Invoke "tan" arguments) = trigFunctionsEval tan arguments
-
+evalFunctions (Invoke "sin" arguments) = oneArgumentFunctionEval sin "sin" arguments
+evalFunctions (Invoke "cos" arguments) = oneArgumentFunctionEval cos "cos" arguments
+evalFunctions (Invoke "tan" arguments) = oneArgumentFunctionEval tan "tan" arguments
+evalFunctions (Invoke "log" arguments) = oneArgumentFunctionEval log "log" arguments
+evalFunctions (Invoke "sqrt" arguments) = oneArgumentFunctionEval sqrt "sqrt" arguments
+evalFunctions (Invoke "abs" arguments) = oneArgumentFunctionEval abs "abs" arguments
 
 
 
