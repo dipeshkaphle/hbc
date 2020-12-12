@@ -166,6 +166,9 @@ evalFunctions :: Expression -> Result EvalResult
 evalFunctions (Invoke "sin" arguments) = oneArgumentFunctionEval sin "sin" arguments
 evalFunctions (Invoke "cos" arguments) = oneArgumentFunctionEval cos "cos" arguments
 evalFunctions (Invoke "tan" arguments) = oneArgumentFunctionEval tan "tan" arguments
+evalFunctions (Invoke "asin" arguments) = oneArgumentFunctionEval asin "asin" arguments
+evalFunctions (Invoke "acos" arguments) = oneArgumentFunctionEval acos "acos" arguments
+evalFunctions (Invoke "atan" arguments) = oneArgumentFunctionEval atan "atan" arguments
 evalFunctions (Invoke "log" arguments) = oneArgumentFunctionEval log "log" arguments
 evalFunctions (Invoke "sqrt" arguments) = oneArgumentFunctionEval sqrt "sqrt" arguments
 evalFunctions (Invoke "abs" arguments) = oneArgumentFunctionEval abs "abs" arguments
