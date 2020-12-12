@@ -108,7 +108,7 @@ eval (Division expr1 expr2) = do
     val2 <- eval expr2
     let g = makeEvalResult
         f = fromIntegral
-        h = divideWithZeroDivError
+        h = divideWithZeroDivError -- defined in Operations.hs
         x =  case (val1,val2) of
                  (EvalResult {int = Just m},EvalResult {int = Just n})       -> Just (h (f m) (f n))
                  (EvalResult {int = Just m},EvalResult {double = Just n})    -> Just (h (f m) n)
@@ -116,6 +116,11 @@ eval (Division expr1 expr2) = do
                  (EvalResult {double = Just m},EvalResult {double = Just n}) -> Just (h m n)
                  otherwise                                                   -> Nothing
     return $ g (Nothing,x,Nothing)
+
+
+
+eval (Invoke funcName funcArgs) = evalFunctions (Invoke funcName funcArgs)
+
 
 -- this function is used so that i dont have to repeat code
 -- for multiplication and Addition and Power, i can just pass  the func to be
@@ -136,6 +141,41 @@ commonEval func expr1 expr2 = do
 
 
 
+------------------------------------------------------------------------
+    -- Evaluating some built in functions
+    -- It kinda has to be done this way
+    -- for user defined functions we'll be adopting a separate method
+    -- built in functions will be trigonometric functions, logarithms,
+    -- factorial, hyperbolic trigonometric functions and maybe some more
+------------------------------------------------------------------------
+trigFunctionsEval trigFunc (Tuple arguments) =
+    case (length arguments) of
+        1 -> do
+            val <- eval $ head arguments
+            let g = makeEvalResult
+                f = fromIntegral
+                x = case val of
+                    (EvalResult {int = Just m})    -> (trigFunc <$> (Just (f m)))
+                    (EvalResult {double = Just m}) -> (trigFunc <$> (Just m))
+                    otherwise                      -> Nothing
+            return $ g (Nothing,x , Nothing)
+        otherwise -> error $ "Wrong number of arguments to sin. Expected 1 but got "++ show (length arguments)
+
+
+
+evalFunctions :: Expression -> Result EvalResult
+evalFunctions (Invoke "sin" arguments) = trigFunctionsEval sin arguments
+evalFunctions (Invoke "cos" arguments) = trigFunctionsEval cos arguments
+evalFunctions (Invoke "tan" arguments) = trigFunctionsEval tan arguments
+
+
+
+
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+
+
+
 evalStatement :: Statement -> Result ()
 -- we're evaluating a print statement
 -- dealing with multiple data types is complicated in haskell
@@ -149,7 +189,7 @@ evalStatement (PrintStatement expr)  =  do
         EvalResult {int= Just n}    -> printVal n
         EvalResult {double= Just n} -> printVal n
         EvalResult {bool = Just b}  -> printVal b
-        otherwise -> error $ "Invalid expression" ++ show expr
+        otherwise                   -> error $ "Invalid expression" ++ show expr
 
 -- seq is used here because we want the
 -- expr to be evaluated for sure
