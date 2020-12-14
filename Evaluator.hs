@@ -149,6 +149,11 @@ commonEval func expr1 expr2 = do
     -- factorial, hyperbolic trigonometric functions and maybe some more
 ------------------------------------------------------------------------
 
+handleWrongNumberOfArgsError funcName noOfArgsDesired noOfArgsPassed =
+    error $ "Wrong number of arguments passed to "++funcName++". Expected: " ++ (show n)++" Got: "++(show n')
+      where n  = noOfArgsDesired
+            n' = noOfArgsPassed
+
 oneArgumentFunctionEval function functionName (Tuple arguments) =
     case (length arguments) of
         1 -> do
@@ -160,7 +165,7 @@ oneArgumentFunctionEval function functionName (Tuple arguments) =
                     (EvalResult {double = Just m}) -> (function <$> (Just m))
                     otherwise                      -> Nothing
             return $ g (Nothing,x , Nothing)
-        otherwise -> error $ "Wrong number of arguments to "++ functionName++ ". Expected 1 but got "++ show (length arguments)
+        otherwise -> handleWrongNumberOfArgsError functionName  1 (length arguments)
 
 evalFunctions :: Expression -> Result EvalResult
 evalFunctions (Invoke "sin" arguments) = oneArgumentFunctionEval sin "sin" arguments
@@ -170,8 +175,42 @@ evalFunctions (Invoke "asin" arguments) = oneArgumentFunctionEval asin "asin" ar
 evalFunctions (Invoke "acos" arguments) = oneArgumentFunctionEval acos "acos" arguments
 evalFunctions (Invoke "atan" arguments) = oneArgumentFunctionEval atan "atan" arguments
 evalFunctions (Invoke "log" arguments) = oneArgumentFunctionEval log "log" arguments
+evalFunctions (Invoke "logBase" (Tuple arguments)) =
+    case (length arguments) of
+        2 -> do
+            base <- eval $ head arguments
+            let f g b= oneArgumentFunctionEval g (show $ "logBase " ++ (show b)) (Tuple (tail arguments))
+            case base of
+                    (EvalResult {int = Just m})    -> f (logBase (fromIntegral m)) m
+                    (EvalResult {double = Just m}) -> f (logBase m) m
+                    otherwise                      -> return $ makeEvalResult (Nothing, Nothing, Nothing)
+        otherwise -> handleWrongNumberOfArgsError "logBase" 2 (length arguments)
+
 evalFunctions (Invoke "sqrt" arguments) = oneArgumentFunctionEval sqrt "sqrt" arguments
-evalFunctions (Invoke "abs" arguments) = oneArgumentFunctionEval abs "abs" arguments
+-- cant use the oneArgumentFunctionEval because it will change the result to double always
+-- but we want to maintain its type in case it is an integer
+evalFunctions (Invoke "abs" (Tuple arguments)) =
+    case (length arguments) of
+        1 -> do
+            val <- eval $ head arguments
+            let g = makeEvalResult
+            return $ g (abs <$> (int val), abs <$> (double val), Nothing)
+        otherwise -> handleWrongNumberOfArgsError "abs" 1 (length arguments)
+
+evalFunctions (Invoke "factorial" (Tuple arguments)) =
+    case (length arguments) of
+        1 -> do
+            val <- eval $ head arguments
+            let g = makeEvalResult
+                fact acc n = if n <= 0
+                                then case n of
+                                    0 -> acc
+                                    _ -> -1
+                                else fact (acc * n) (n-1)
+            return $ case val of
+                (EvalResult {int = Just m}) -> g $ (Just (fact 1 m), Nothing,Nothing)
+                otherwise                   -> g $ (Nothing,Nothing,Nothing)
+        otherwise -> handleWrongNumberOfArgsError "factorial" 1 (length arguments)
 
 
 
@@ -193,7 +232,7 @@ evalStatement (PrintStatement expr)  =  do
         EvalResult {int= Just n}    -> printVal n
         EvalResult {double= Just n} -> printVal n
         EvalResult {bool = Just b}  -> printVal b
-        otherwise                   -> error $ "Invalid expression" ++ show expr
+        otherwise                   -> error $ "Invalid expression: " ++ show expr
 
 -- seq is used here because we want the
 -- expr to be evaluated for sure
