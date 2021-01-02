@@ -174,6 +174,12 @@ evalFunctions (Invoke "tan" arguments) = oneArgumentFunctionEval tan "tan" argum
 evalFunctions (Invoke "asin" arguments) = oneArgumentFunctionEval asin "asin" arguments
 evalFunctions (Invoke "acos" arguments) = oneArgumentFunctionEval acos "acos" arguments
 evalFunctions (Invoke "atan" arguments) = oneArgumentFunctionEval atan "atan" arguments
+evalFunctions (Invoke "sinh" arguments) = oneArgumentFunctionEval sinh "sinh" arguments
+evalFunctions (Invoke "cosh" arguments) = oneArgumentFunctionEval cosh "cosh" arguments
+evalFunctions (Invoke "tanh" arguments) = oneArgumentFunctionEval tanh "tanh" arguments
+evalFunctions (Invoke "asinh" arguments) = oneArgumentFunctionEval asinh "asinh" arguments
+evalFunctions (Invoke "acosh" arguments) = oneArgumentFunctionEval acosh "acosh" arguments
+evalFunctions (Invoke "atanh" arguments) = oneArgumentFunctionEval atanh "atanh" arguments
 evalFunctions (Invoke "log" arguments) = oneArgumentFunctionEval log "log" arguments
 evalFunctions (Invoke "logBase" (Tuple arguments)) =
     case (length arguments) of
