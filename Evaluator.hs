@@ -45,15 +45,17 @@ eval (Id str) = do
             (Left val)   -> eval val
 
 
-eval (Assign str expr) = do
+eval (Assign (Id str) expr) = do
     ans      <- eval expr
     let getStringFromId (Id name) = name
-        mod = \x -> modify $ (M.insert (getStringFromId str) x)
+        mod = \x -> modify $ (M.insert (str) x)
     case ans of
         EvalResult {int= Just n}    -> mod $ Left $ IntNode n
         EvalResult {double= Just n} -> mod $ Left $ DoubleNode n
         EvalResult {bool = Just b}  -> mod $ Left $ BoolNode b
     return ans
+eval (Assign lval rval) = do
+    return $ (error $ "Invalid lvalue: "++(show lval))
 
 eval (LogicalBinOp op expr1 expr2) = do
     val1 <- eval expr1
@@ -218,6 +220,9 @@ evalFunctions (Invoke "factorial" (Tuple arguments)) =
                 otherwise                   -> g $ (Nothing,Nothing,Nothing)
         otherwise -> handleWrongNumberOfArgsError "factorial" 1 (length arguments)
 
+-- evalFunctions (Invoke functionName (Tuple arguments)) =
+
+
 
 
 ------------------------------------------------------------------------
@@ -268,6 +273,11 @@ evalStatement (Eval expr) = do
         EvalResult {double = Just m } -> f m
         EvalResult {bool = Just m}    -> f m
         otherwise                     -> error $ "Invalid expression " ++ show expr
+
+
+
+evalStatement (Define (FunctionBody funcName functionArgs statements)) = do
+    modify $ (M.insert (funcName) (Right $ FunctionBody funcName functionArgs statements))
 
 
 -- takes in an input string and parses it and runs evalStatement on it

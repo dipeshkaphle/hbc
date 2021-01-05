@@ -67,7 +67,7 @@ lexer = makeTokenParser (haskellStyle {opStart = oneOf "^+-*/%|&~=<>"
 
 -- uses the table and parseTerm function below to parse the expression
 parseExpr :: Parser Expression
-parseExpr = buildExpressionParser table parseTerm
+parseExpr = buildExpressionParser table parseTerm -- parses operations(logical and arithmetic)
 
 -- for getting associativity right
 -- parses the expression correctly with the specified operators
@@ -104,10 +104,17 @@ parseNumber = do
 parseString :: Parser Expression
 parseString = do
     str <- identifier lexer
-    return $ case str of
-        "True"    -> BoolNode True
-        "False"   -> BoolNode False
-        otherwise -> Id str
+    let invalidIdentifier s typeOfS=  error $ s ++ " is a " ++typeOfS ++ ". Can't be used as an identifier"
+        keywords = [ "def", "print"]
+        builtInFunctions = ["sin","cos","tan","acos","asin","atan","sinh","cosh","tanh","logBase","log",
+                           "sqrt","abs","factorial"]
+        returnVal   | elem str keywords = invalidIdentifier str "keyword"
+                    | elem str builtInFunctions = invalidIdentifier str "built-in function"
+                    | (str=="True") = BoolNode True
+                    | (str=="False") = BoolNode False
+                    | otherwise = Id str
+    return returnVal
+
 
 -- parses function invocation
 -- parses a string
@@ -132,6 +139,25 @@ parseTerm = parens lexer parseExpr
             <|> parseString
 
 
+-- parseAssignment:: Parser Expression
+-- parseAssignment = do
+--     id <- parseString
+--     case id of
+--         Id varName -> do
+--             reserved lexer "="
+--             rhs <- parseExpression
+--             return $ Assign id rhs
+--         BoolNode _ -> error $ "True and False are reserved and is not lvalue type"
+--         otherwise  -> error $ show id
+
+
+parseFunctionParameter :: Parser Expression
+parseFunctionParameter= do
+    str <- parseString
+    return $ case str of
+        Id _ -> str
+        BoolNode _ -> error $ "Invalid argument for function: Cant pass use True or False as parameter names"
+        otherwise -> error $ "Invalid argument for a function definition: "++ (show str)
 
 
 parseExprList :: Parser Expression
@@ -143,7 +169,7 @@ parseExprList = do
 -}
 -- same thing as above going on in parseTuple
 parseTuple :: Parser Expression
-parseTuple = liftM Tuple $ sepBy parseExpression (comma lexer)
+parseTuple = liftM Tuple $ sepBy parseFunctionParameter (comma lexer)
 
 
 --  top level parser for Expression type
