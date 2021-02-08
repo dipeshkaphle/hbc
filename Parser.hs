@@ -52,7 +52,7 @@ data FunctionBody = FunctionBody String Expression [Statement] deriving (Show,Re
 parseFunctionBody :: Parser FunctionBody
 parseFunctionBody = do
     funcName <- identifier lexer
-    args <- parens lexer parseTuple
+    args <- parens lexer parseTupleForDefineStatement
     statements <- braces lexer $ sepEndBy parseStatement (semi lexer)
     return $ FunctionBody  funcName args statements
 
@@ -169,8 +169,10 @@ parseExprList = do
 -}
 -- same thing as above going on in parseTuple
 parseTuple :: Parser Expression
-parseTuple = liftM Tuple $ sepBy parseFunctionParameter (comma lexer)
+parseTuple = liftM Tuple $ sepBy parseExpression (comma lexer)
 
+parseTupleForDefineStatement :: Parser Expression
+parseTupleForDefineStatement = liftM Tuple $ sepBy parseFunctionParameter (comma lexer)
 
 --  top level parser for Expression type
 --  combines tuple parser,list parser and normal expression parser

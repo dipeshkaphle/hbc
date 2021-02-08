@@ -20,6 +20,6 @@ executable hbc
   main-is:             Main.hs
   other-modules:	   Parser,Evaluator,Operations
   -- other-extensions:
-  build-depends:       base >=4.14 && <4.15,parsec,mtl,containers
+  build-depends:       base >=4.14 ,parsec,mtl,containers
   -- hs-source-dirs:
   default-language:    Haskell2010
