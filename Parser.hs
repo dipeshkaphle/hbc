@@ -36,7 +36,7 @@ data Statement = PrintStatement Expression
                | Define FunctionBody
     deriving (Show,Read)
 
-data FunctionBody = FunctionBody String Expression [Statement] deriving (Show,Read) -- the 2nd Expression after the
+data FunctionBody = FunctionBody String Expression [Statement] deriving (Show,Read) -- the Expression after the
 -- FunctionBody constructor should technically be just a Tuple
 -- Tuple [Expression] was included in Expression solely for this purpose
 -- We'll take care of this sort of weird representation of FunctionBody by using only

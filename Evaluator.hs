@@ -8,6 +8,7 @@ import           System.Environment
 import           System.IO
 import           Text.ParserCombinators.Parsec hiding (spaces)
 
+
 type SymbolTableVal = Either Expression FunctionBody
 
 type Result a = StateT (M.Map String SymbolTableVal) IO a
@@ -220,9 +221,32 @@ evalFunctions (Invoke "factorial" (Tuple arguments)) =
                 otherwise                   -> g $ (Nothing,Nothing,Nothing)
         otherwise -> handleWrongNumberOfArgsError "factorial" 1 (length arguments)
 
--- evalFunctions (Invoke functionName (Tuple arguments)) =
+evalFunctions (Invoke functionName (Tuple arguments)) = do
+    varTable <- get
+    case M.lookup functionName varTable of
+        Nothing -> error ("Function "++functionName++ " isnt defined")
+        Just a  -> case a of
+            (Right (FunctionBody name argsName statementsToExecute)) -> case argsName of
+                Tuple argsNameList -> case (length argsNameList == length arguments) of
+                    True -> evalUserDefinedFunction functionName (map get_str_out_of_id argsNameList) statementsToExecute (M.fromList (zip (map get_str_out_of_id argsNameList) (map eval arguments)))
+                    False -> error $ "Expected " ++ (show $ length argsNameList) ++" arguments for function "++functionName++
+                        ". But got "++(show $ length arguments) ++" arguments"
+                otherwise -> error "You shouldnt have ever reached this error, This program is doomed if you are seeing this."
+            (Left val)   -> error "Call function with format foo(a,b)"
 
 
+-- helper func
+get_str_out_of_id x = case x of
+    Id name   -> name
+    otherwise-> ""
+
+-- this doesnt work at all
+-- I gotta make it work idk how
+--
+evalUserDefinedFunction :: String -> [String] -> [Statement] -> (M.Map String (Result EvalResult)) -> Result EvalResult
+evalUserDefinedFunction functionName argsNameList statementsToExecute stackSymTable= do
+    mapM_ evalStatement statementsToExecute
+    return $ makeEvalResult (Just 0, Nothing, Nothing)
 
 
 ------------------------------------------------------------------------
