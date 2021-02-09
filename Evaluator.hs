@@ -228,7 +228,7 @@ evalFunctions (Invoke functionName (Tuple arguments)) = do
         Just a  -> case a of
             (Right (FunctionBody name argsName statementsToExecute)) -> case argsName of
                 Tuple argsNameList -> case (length argsNameList == length arguments) of
-                    True -> evalUserDefinedFunction functionName (map get_str_out_of_id argsNameList) statementsToExecute (M.fromList (zip (map get_str_out_of_id argsNameList) (map (Left ) arguments)))
+                    True -> evalUserDefinedFunction functionName (map get_str_out_of_id argsNameList) statementsToExecute (M.fromList (zip (map get_str_out_of_id argsNameList) (map (\x -> Left $ x ) arguments)))
                     False -> error $ "Expected " ++ (show $ length argsNameList) ++" arguments for function "++functionName++
                         ". But got "++(show $ length arguments) ++" arguments"
                 otherwise -> error "You shouldnt have ever reached this error, This program is doomed if you are seeing this."
@@ -247,13 +247,17 @@ get_str_out_of_id x = case x of
 evalUserDefinedFunction :: String -> [String] -> [Statement] -> (M.Map String (SymbolTableVal)) -> Result EvalResult
 evalUserDefinedFunction functionName argsNameList statementsToExecute stackSymTable= do
     varTable <- get
-    evalStateT (lift $ evalFunctionStaements statementsToExecute) (varTable)
+    modify $ (M.union stackSymTable )
+    execStateT (lift $ evalFunctionStaements statementsToExecute) (M.union stackSymTable varTable)
+    -- modify $ (M.union varTable (M.fromList []))
+    modify $ (flip (M.differenceWithKey (\k v1 v2 -> M.lookup k varTable)) stackSymTable)
     return $ makeEvalResult (Just 0, Nothing, Nothing)
     --
     -- (runStateT (evalSomeShit statementsToExecute) varTable) `seq` return $ makeEvalResult (Just 0, Nothing, Nothing)
 
 evalFunctionStaements :: [Statement] -> Result ()
 evalFunctionStaements x = do
+    varTable <- get
     mapM_ evalStatement x
     return ()
 
