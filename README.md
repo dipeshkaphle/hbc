@@ -1,12 +1,8 @@
 <p align="center">
   <a href="#"><img src="https://capsule-render.vercel.app/api?type=rect&color=8B008B&height=100&section=header&text=Haskell%20Basic%20Calculator(hbc)&fontSize=50%&fontColor=ffffff" alt="website title image"></a>
-  <h2 align="center">🧮 A mathematical scripting language made using Haskell 🧮</h2>
+  <h2 align="center"> A mathematical scripting language made using Haskell </h2>
 </p>
 
-<p align="center">
-<img src="https://img.shields.io/badge/language-Haskell-purple?style=for-the-badge"> 
-<img src="https://img.shields.io/badge/language-Shell-neon?style=for-the-badge"> 
- </p>
 
 ## Note
 
@@ -17,11 +13,26 @@
 * Run `cabal build` to just build the executable
 * Run `cabal run` to build and run the executable
 > after building and running the executable sucessfully, you can perform basic operations
-#### e.g - 
-#### print 5 + 5
-#### 10
 
-## 📌 About the Project
+```bash
+>>>> print 5 + 5
+10
+>>>> print 10**2
+100
+>>>> print sin(0)
+0.0
+>>>> print cos(0)
+1.0
+>>>> a = 10
+>>>> def foo(a){print a;print 100;}
+>>>> foo(10)
+10
+100
+>>>> print a
+1.0
+```
+
+## About the Project
 
 We'll be havin 3 data types. We will not be dealing with strings.<br>
 
@@ -54,12 +65,11 @@ for them. The operations that are parsed by our program as of now are :
 
 As of now, We are only able to parse the input we're
 provided from the user and generate the parse tree for it. It has
-most of the basic parsing components ready. It can't parse a
-function definition as of now but that ability will be added soon.
-Parsing Conditionals, Loops, also hasn't been added yet. I have planned
-to implement the basic building blocks at first and then move onto
-complex stuff so they are on hold until we have the basic interpreter
-ready.
+most of the basic parsing components ready.
+Parsing Conditionals, Loops haven't been added yet. Functions can be defined
+and called. Even recursive functions are supported technically, but there's no way of stopping them
+because of lack of conditionals. The function implementation is really not good at the moment but
+hopefully will be improved soon.
 
 ### Libraries
 
@@ -67,29 +77,27 @@ ready.
 [parsec](https://hackage.haskell.org/package/parsec-3.1.14.0/docs/Text-Parsec.html)
 is being used
 * For arbitrary precision calculation and representaion, We will most likely be using
-[numbers](https://hackage.haskell.org/package/numbers)
+[numbers](https://hackage.haskell.org/package/numbers). Arbitrary precision is definitely
+on hold, it does not seem feasible as of now.
 * Other libraries may also be used if needed.
 
-## 📝 Essential planned features
+##  Essential planned features
 
 - [ ] Arbitrary precision calculation
 
-- [ ] Ability to define functions
+- [X] Ability to define functions
 
 - [ ] Loops
 
 - [ ] Conditionals
 
-- [ ] Math functions provided by GNU bc and a few more if possible
+- [X] Built in Math Functions 
 
 Other feature are to be decided as we continue with the project. If
 something seems essential and worth adding, we'll be attempting to
 put those also. Open to suggestions as well.
 
-## 💥 Contributing
-
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
-[![Open Source Love svg2](https://badges.frapsoft.com/os/v2/open-source.svg?v=103)](https://github.com/ellerbrock/open-source-badges/)
+##  Contributing
 
 - For contributing refer to the [Contributing.md](./Contributing.md)
 - Read the [code of conduct](./hbc/CODE_OF_CONDUCT.md)
