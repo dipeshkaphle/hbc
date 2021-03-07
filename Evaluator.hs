@@ -244,13 +244,27 @@ get_str_out_of_id x = case x of
 -- this doesnt work at all
 -- I gotta make it work idk how
 --
+--
+
+conflict_resolve varTable k v1 v2 = case v1 of
+    Left tok -> case tok of
+        Id x -> case M.lookup x varTable of
+            Nothing -> error $ x ++ " passed as parameter is invalid"
+            Just y -> case y of
+                Left val -> y
+                _        -> error "Functions arent first class citizens yet"
+        _    -> v1
+    Right tok -> v1
+
+
+
 evalUserDefinedFunction :: String -> [String] -> [Statement] -> (M.Map String (SymbolTableVal)) -> Result EvalResult
 evalUserDefinedFunction functionName argsNameList statementsToExecute stackSymTable= do
     varTable <- get
-    modify $ (M.union stackSymTable )
-    execStateT (lift $ evalFunctionStaements statementsToExecute) (M.union stackSymTable varTable)
-    -- modify $ (M.union varTable (M.fromList []))
-    modify $ (flip (M.differenceWithKey (\k v1 v2 -> M.lookup k varTable)) stackSymTable)
+    modify $  M.unionWithKey (conflict_resolve varTable) stackSymTable
+    varTable2 <- get
+    execStateT (lift $ evalFunctionStaements statementsToExecute) (varTable2)
+    modify $  flip (M.differenceWithKey (\k v1 v2 -> M.lookup k varTable)) stackSymTable
     return $ makeEvalResult (Just 0, Nothing, Nothing)
     --
     -- (runStateT (evalSomeShit statementsToExecute) varTable) `seq` return $ makeEvalResult (Just 0, Nothing, Nothing)
@@ -322,7 +336,7 @@ evalStatement (Eval expr) = do
 
 
 evalStatement (Define (FunctionBody funcName functionArgs statements)) = do
-    modify $ (M.insert (funcName) (Right $ FunctionBody funcName functionArgs statements))
+    modify $  M.insert  funcName  (Right $ FunctionBody funcName functionArgs statements)
 
 
 -- takes in an input string and parses it and runs evalStatement on it

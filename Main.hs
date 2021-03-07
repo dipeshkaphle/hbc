@@ -5,4 +5,4 @@ import           Parser
 import           System.Environment
 main :: IO ()
 main = do
-    evalStateT (evaluator) varSymbolTable
+    evalStateT evaluator varSymbolTable

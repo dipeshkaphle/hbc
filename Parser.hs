@@ -73,8 +73,7 @@ parseExpr = buildExpressionParser table parseTerm -- parses operations(logical a
 -- parses the expression correctly with the specified operators
 -- God bless the people who did this
 -- Cuz it wouldve been an absolute pain
-table = [[binary "=" (Assign) AssocRight]
-        ,[binary "==" (CmpNode Equal) AssocNone,binary "/=" (CmpNode NEqual) AssocNone
+table = [[binary "==" (CmpNode Equal) AssocNone,binary "/=" (CmpNode NEqual) AssocNone
         ,binary "<" (CmpNode Lt) AssocNone , binary "<=" (CmpNode Lte) AssocNone
         ,binary ">" (CmpNode Gt) AssocNone , binary ">=" (CmpNode Gte) AssocNone]
         ,[prefix "~" (Not)]
@@ -85,7 +84,9 @@ table = [[binary "=" (Assign) AssocRight]
         ,[binary "**" (Power) AssocLeft]
         ,[binary "*" (Multiplication) AssocLeft, binary "/" (Division) AssocLeft,
          binary "%" (Modulus) AssocLeft]
-        ,[binary "+" (Addition) AssocLeft, binary "-" (Subtraction) AssocLeft]]
+        ,[binary "+" (Addition) AssocLeft, binary "-" (Subtraction) AssocLeft]
+        ,[binary "=" (Assign) AssocLeft ]
+        ]
 
 binary name fun assoc = Infix (do{ reservedOp lexer name; return fun }) assoc
 prefix  name fun      = Prefix (do{ reservedOp lexer name; return fun })
