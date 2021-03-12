@@ -228,7 +228,7 @@ evalFunctions (Invoke functionName (Tuple arguments)) = do
         Just a  -> case a of
             (Right (FunctionBody name argsName statementsToExecute)) -> case argsName of
                 Tuple argsNameList -> case (length argsNameList == length arguments) of
-                    True -> evalUserDefinedFunction functionName (map get_str_out_of_id argsNameList) statementsToExecute (M.fromList (zip (map get_str_out_of_id argsNameList) (map (\x -> Left $ x ) arguments)))
+                    True -> evalUserDefinedFunction functionName (map get_str_out_of_id argsNameList)statementsToExecute (M.fromList (zip (map get_str_out_of_id argsNameList) (map (\x -> Left $ x ) arguments)))
                     False -> error $ "Expected " ++ (show $ length argsNameList) ++" arguments for function "++functionName++
                         ". But got "++(show $ length arguments) ++" arguments"
                 otherwise -> error "You shouldnt have ever reached this error, This program is doomed if you are seeing this."
@@ -237,6 +237,7 @@ evalFunctions (Invoke functionName (Tuple arguments)) = do
 
 
 -- helper func
+get_str_out_of_id :: Expression -> String
 get_str_out_of_id x = case x of
     Id name   -> name
     otherwise-> ""
@@ -263,11 +264,9 @@ evalUserDefinedFunction functionName argsNameList statementsToExecute stackSymTa
     varTable <- get
     modify $  M.unionWithKey (conflict_resolve varTable) stackSymTable
     varTable2 <- get
-    execStateT (lift $ evalFunctionStaements statementsToExecute) (varTable2)
+    execStateT (lift $ evalFunctionStaements statementsToExecute)  varTable2
     modify $  flip (M.differenceWithKey (\k v1 v2 -> M.lookup k varTable)) stackSymTable
     return $ makeEvalResult (Just 0, Nothing, Nothing)
-    --
-    -- (runStateT (evalSomeShit statementsToExecute) varTable) `seq` return $ makeEvalResult (Just 0, Nothing, Nothing)
 
 evalFunctionStaements :: [Statement] -> Result ()
 evalFunctionStaements x = do
@@ -275,12 +274,6 @@ evalFunctionStaements x = do
     mapM_ evalStatement x
     return ()
 
-
---
--- evalSomeShit [] = return ()
--- evalSomeShit (x:xs) = do
---     evalStatement x
---     evalSomeShit xs
 
 
 
