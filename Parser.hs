@@ -1,11 +1,11 @@
 module Parser where
 
-import Control.Monad
-import Text.Parsec.Expr
-import Text.Parsec.Language
-import Text.Parsec.String
-import Text.Parsec.Token
-import Text.ParserCombinators.Parsec hiding (spaces)
+import           Control.Monad
+import           Text.Parsec.Expr
+import           Text.Parsec.Language
+import           Text.Parsec.String
+import           Text.Parsec.Token
+import           Text.ParserCombinators.Parsec hiding (spaces)
 
 data LogicalOp = And | Or | Xor | Implies | DoubleImplies deriving (Show, Read)
 
@@ -114,7 +114,7 @@ parseNumber :: Parser Expression
 parseNumber = do
   num <- naturalOrFloat lexer
   case num of
-    Left n -> return $ IntNode n
+    Left n  -> return $ IntNode n
     Right n -> return $ DoubleNode n
 
 -- to parse the strings
@@ -250,14 +250,14 @@ parseInput :: String -> Statement
 parseInput str =
   let ret = parse parseStatement "Error in Parsing " str
    in case ret of
-        Left e -> error $ show e
+        Left e   -> error $ show e
         Right st -> st
 
 -- parses string and returns the expression as string
 parseInputAsString str =
   let ret = parse parseStatement "Wrong expr" str
    in case ret of
-        Left e -> show e
+        Left e    -> show e
         Right val -> show val
 
 -- for running interactively

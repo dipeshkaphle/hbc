@@ -1,21 +1,21 @@
 module Evaluator where
 
-import Control.Monad.State
-import qualified Data.Map as M
-import Operations
-import Parser
-import System.Environment
-import System.IO
-import Text.ParserCombinators.Parsec hiding (spaces)
+import           Control.Monad.State
+import qualified Data.Map                      as M
+import           Operations
+import           Parser
+import           System.Environment
+import           System.IO
+import           Text.ParserCombinators.Parsec hiding (spaces)
 
 type SymbolTableVal = Either Expression FunctionBody
 
 type Result a = StateT (M.Map String SymbolTableVal) IO a
 
 data EvalResult = EvalResult
-  { int :: Maybe Integer,
+  { int    :: Maybe Integer,
     double :: Maybe Double,
-    bool :: Maybe Bool
+    bool   :: Maybe Bool
   }
   deriving (Show)
 
@@ -43,15 +43,15 @@ eval (Id str) = do
     Nothing -> error ("Variable " ++ str ++ " isnt defined")
     Just a -> case a of
       (Right func) -> error "Call function with format foo(a,b)"
-      (Left val) -> eval val
+      (Left val)   -> eval val
 eval (Assign (Id str) expr) = do
   ans <- eval expr
   let getStringFromId (Id name) = name
       mod = modify . M.insert str
   case ans of
-    EvalResult {int = Just n} -> mod $ Left $ IntNode n
+    EvalResult {int = Just n}    -> mod $ Left $ IntNode n
     EvalResult {double = Just n} -> mod $ Left $ DoubleNode n
-    EvalResult {bool = Just b} -> mod $ Left $ BoolNode b
+    EvalResult {bool = Just b}   -> mod $ Left $ BoolNode b
   return ans
 eval (Assign lval rval) =
   return (error $ "Invalid lvalue: " ++ show lval)
@@ -63,7 +63,7 @@ eval (LogicalBinOp op expr1 expr2) = do
       g = makeEvalResult
       x = case (val1, val2) of
         (EvalResult {bool = Just p}, EvalResult {bool = Just q}) -> Just $ f p q
-        _ -> Nothing
+        _                                                        -> Nothing
    in return $ g (Nothing, Nothing, x)
 
 -- Make comparision between numbers
@@ -89,9 +89,9 @@ eval (Negation expr1) = do
   let g = makeEvalResult
       f a = fmap negate (Just a)
    in return $ case val1 of
-        EvalResult {int = Just m} -> g (f m, Nothing, Nothing)
+        EvalResult {int = Just m}    -> g (f m, Nothing, Nothing)
         EvalResult {double = Just m} -> g (Nothing, f m, Nothing)
-        _ -> g (Nothing, Nothing, Nothing)
+        _                            -> g (Nothing, Nothing, Nothing)
 eval (Multiplication expr1 expr2) = commonEval (*) expr1 expr2
 eval (Power expr1 expr2) = commonEval (**) expr1 expr2
 eval (Modulus expr1 expr2) = commonEval modulus expr1 expr2
@@ -158,9 +158,9 @@ oneArgumentFunctionEval function functionName (Tuple arguments) =
       let g = makeEvalResult
           f = fromIntegral
           x = case val of
-            EvalResult {int = Just m} -> function <$> Just (f m)
+            EvalResult {int = Just m}    -> function <$> Just (f m)
             EvalResult {double = Just m} -> function <$> Just m
-            _ -> Nothing
+            _                            -> Nothing
       return $ g (Nothing, x, Nothing)
     _ -> handleWrongNumberOfArgsError functionName 1 (length arguments)
 
@@ -211,7 +211,7 @@ evalFunctions (Invoke "factorial" (Tuple arguments)) =
               else fact (acc * n) (n -1)
       return $ case val of
         EvalResult {int = Just m} -> g (Just (fact 1 m), Nothing, Nothing)
-        _ -> g (Nothing, Nothing, Nothing)
+        _                         -> g (Nothing, Nothing, Nothing)
     _ -> handleWrongNumberOfArgsError "factorial" 1 (length arguments)
 evalFunctions (Invoke functionName (Tuple arguments)) = do
   varTable <- get
@@ -241,13 +241,13 @@ foo x = do
   ans <- eval x
   return $ case ans of
     EvalResult {int = Just n} -> Left $ IntNode n
-    _ -> Left $ IntNode 0
+    _                         -> Left $ IntNode 0
 
 -- helper func
 get_str_out_of_id :: Expression -> String
 get_str_out_of_id x = case x of
   Id name -> name
-  _ -> ""
+  _       -> ""
 
 -- this doesnt work at all
 -- I gotta make it work idk how
@@ -260,7 +260,7 @@ conflict_resolve varTable k v1 v2 = case v1 of
       Nothing -> error $ x ++ " passed as parameter is invalid"
       Just y -> case y of
         Left val -> y
-        _ -> error "Functions arent first class citizens yet"
+        _        -> error "Functions arent first class citizens yet"
     _ -> v1
   Right tok -> v1
 
@@ -291,10 +291,10 @@ evalStatement (PrintStatement expr) = do
   ans <- eval expr
   let printVal val = liftIO $ print val
   case ans of
-    EvalResult {int = Just n} -> printVal n
+    EvalResult {int = Just n}    -> printVal n
     EvalResult {double = Just n} -> printVal n
-    EvalResult {bool = Just b} -> printVal b
-    _ -> error $ "Invalid expression: " ++ show expr
+    EvalResult {bool = Just b}   -> printVal b
+    _                            -> error $ "Invalid expression: " ++ show expr
 
 -- seq is used here because we want the
 -- expr to be evaluated for sure
@@ -320,10 +320,10 @@ evalStatement (Eval expr) = do
   a <- eval expr
   let f a = show a `seq` return ()
   case a of
-    EvalResult {int = Just m} -> f m
+    EvalResult {int = Just m}    -> f m
     EvalResult {double = Just m} -> f m
-    EvalResult {bool = Just m} -> f m
-    _ -> error $ "Invalid expression " ++ show expr
+    EvalResult {bool = Just m}   -> f m
+    _                            -> error $ "Invalid expression " ++ show expr
 evalStatement (Define (FunctionBody funcName functionArgs statements)) =
   modify $ M.insert funcName (Right $ FunctionBody funcName functionArgs statements)
 
