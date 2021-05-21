@@ -1,11 +1,11 @@
 module Parser where
 
-import           Control.Monad
-import           Text.Parsec.Expr
-import           Text.Parsec.Language
-import           Text.Parsec.String
-import           Text.Parsec.Token
-import           Text.ParserCombinators.Parsec hiding (spaces)
+import Control.Monad
+import Text.Parsec.Expr
+import Text.Parsec.Language
+import Text.Parsec.String
+import Text.Parsec.Token
+import Text.ParserCombinators.Parsec hiding (spaces)
 
 data LogicalOp = And | Or | Xor | Implies | DoubleImplies deriving (Show, Read)
 
@@ -56,7 +56,64 @@ parseFunctionBody = do
   funcName <- identifier lexer
   args <- parens lexer parseTupleForDefineStatement
   statements <- braces lexer $ sepEndBy parseStatement (semi lexer)
-  return $ FunctionBody funcName args statements
+  let argsAsStrings = map getIdentifierFromExpression (getParsedArgsAsList args)
+   in return $
+        FunctionBody
+          funcName
+          ( Tuple
+              ( map
+                  (Id . convertToFunctionArgForm funcName)
+                  argsAsStrings
+              )
+          )
+          (map (modifyStatementForFunctionParse argsAsStrings funcName) statements)
+
+convertToFunctionArgForm :: [Char] -> [Char] -> [Char]
+convertToFunctionArgForm funcName s = "__Function_" ++ funcName ++ "__Arg_" ++ s
+
+changeToScopedArgForm argumentNames functionName s =
+  if s `elem` argumentNames
+    then convertToFunctionArgForm functionName s
+    else s
+
+modifyStatementForFunctionParse argumentNames functionName stat =
+  let f = modifyTreeForParsedFunction argumentNames functionName
+   in case stat of
+        PrintStatement t -> PrintStatement (f t)
+        Eval t -> Eval (f t)
+        _ -> stat
+
+modifyTreeForParsedFunction :: [String] -> String -> Expression -> Expression
+modifyTreeForParsedFunction argumentNames functionName tree =
+  let f = modifyTreeForParsedFunction argumentNames functionName
+      g = changeToScopedArgForm argumentNames functionName
+   in case tree of
+        Id a -> Id (g a)
+        LogicalBinOp op t1 t2 -> LogicalBinOp op (f t1) (f t2)
+        Not t -> Not (f t)
+        CmpNode op t1 t2 -> CmpNode op (f t1) (f t2)
+        Invoke s t -> Invoke (g s) (f t)
+        List ts -> List (map f ts)
+        Assign lhs rhs -> Assign (f lhs) (f rhs)
+        Tuple ts -> Tuple (map f ts)
+        Addition t1 t2 -> Addition (f t1) (f t2)
+        Subtraction t1 t2 -> Subtraction (f t1) (f t2)
+        Multiplication t1 t2 -> Multiplication (f t1) (f t2)
+        Division t1 t2 -> Division (f t1) (f t2)
+        Modulus t1 t2 -> Modulus (f t1) (f t2)
+        Power t1 t2 -> Power (f t1) (f t2)
+        Negation t -> Negation (f t)
+        _ -> tree
+
+getParsedArgsAsList :: Expression -> [Expression]
+getParsedArgsAsList args = case args of
+  Tuple xs -> xs
+  _ -> []
+
+getIdentifierFromExpression :: Expression -> String
+getIdentifierFromExpression ident = case ident of
+  Id s -> s
+  _ -> ""
 
 --------------------------------------------------------------------------------------
 -- this pretty much sets up identifier grammar and some other stuff as well
@@ -114,7 +171,7 @@ parseNumber :: Parser Expression
 parseNumber = do
   num <- naturalOrFloat lexer
   case num of
-    Left n  -> return $ IntNode n
+    Left n -> return $ IntNode n
     Right n -> return $ DoubleNode n
 
 -- to parse the strings
@@ -250,14 +307,14 @@ parseInput :: String -> Statement
 parseInput str =
   let ret = parse parseStatement "Error in Parsing " str
    in case ret of
-        Left e   -> error $ show e
+        Left e -> error $ show e
         Right st -> st
 
 -- parses string and returns the expression as string
 parseInputAsString str =
   let ret = parse parseStatement "Wrong expr" str
    in case ret of
-        Left e    -> show e
+        Left e -> show e
         Right val -> show val
 
 -- for running interactively

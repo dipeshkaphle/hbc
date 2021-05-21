@@ -1,21 +1,21 @@
 module Evaluator where
 
-import           Control.Monad.State
-import qualified Data.Map                      as M
-import           Operations
-import           Parser
-import           System.Environment
-import           System.IO
-import           Text.ParserCombinators.Parsec hiding (spaces)
+import Control.Monad.State
+import qualified Data.Map as M
+import Operations
+import Parser
+import System.Environment
+import System.IO
+import Text.ParserCombinators.Parsec hiding (spaces)
 
 type SymbolTableVal = Either Expression FunctionBody
 
 type Result a = StateT (M.Map String SymbolTableVal) IO a
 
 data EvalResult = EvalResult
-  { int    :: Maybe Integer,
+  { int :: Maybe Integer,
     double :: Maybe Double,
-    bool   :: Maybe Bool
+    bool :: Maybe Bool
   }
   deriving (Show)
 
@@ -43,15 +43,15 @@ eval (Id str) = do
     Nothing -> error ("Variable " ++ str ++ " isnt defined")
     Just a -> case a of
       (Right func) -> error "Call function with format foo(a,b)"
-      (Left val)   -> eval val
+      (Left val) -> eval val
 eval (Assign (Id str) expr) = do
   ans <- eval expr
   let getStringFromId (Id name) = name
       mod = modify . M.insert str
   case ans of
-    EvalResult {int = Just n}    -> mod $ Left $ IntNode n
+    EvalResult {int = Just n} -> mod $ Left $ IntNode n
     EvalResult {double = Just n} -> mod $ Left $ DoubleNode n
-    EvalResult {bool = Just b}   -> mod $ Left $ BoolNode b
+    EvalResult {bool = Just b} -> mod $ Left $ BoolNode b
   return ans
 eval (Assign lval rval) =
   return (error $ "Invalid lvalue: " ++ show lval)
@@ -63,7 +63,7 @@ eval (LogicalBinOp op expr1 expr2) = do
       g = makeEvalResult
       x = case (val1, val2) of
         (EvalResult {bool = Just p}, EvalResult {bool = Just q}) -> Just $ f p q
-        _                                                        -> Nothing
+        _ -> Nothing
    in return $ g (Nothing, Nothing, x)
 
 -- Make comparision between numbers
@@ -89,9 +89,9 @@ eval (Negation expr1) = do
   let g = makeEvalResult
       f a = fmap negate (Just a)
    in return $ case val1 of
-        EvalResult {int = Just m}    -> g (f m, Nothing, Nothing)
+        EvalResult {int = Just m} -> g (f m, Nothing, Nothing)
         EvalResult {double = Just m} -> g (Nothing, f m, Nothing)
-        _                            -> g (Nothing, Nothing, Nothing)
+        _ -> g (Nothing, Nothing, Nothing)
 eval (Multiplication expr1 expr2) = commonEval (*) expr1 expr2
 eval (Power expr1 expr2) = commonEval (**) expr1 expr2
 eval (Modulus expr1 expr2) = commonEval modulus expr1 expr2
@@ -117,6 +117,7 @@ eval (Invoke funcName funcArgs) = evalFunctions (Invoke funcName funcArgs)
 -- this function is used so that i dont have to repeat code
 -- for multiplication and Addition and Power, i can just pass  the func to be
 -- + , *, **  and modulus and somewhat in divide as well and it'll evaluate properly
+commonEval :: (Double -> Double -> Double) -> Expression -> Expression -> StateT (M.Map String SymbolTableVal) IO EvalResult
 commonEval func expr1 expr2 = do
   val1 <- eval expr1
   val2 <- eval expr2
@@ -145,12 +146,14 @@ commonEval func expr1 expr2 = do
 -- factorial, hyperbolic trigonometric functions and maybe some more
 ------------------------------------------------------------------------
 
+handleWrongNumberOfArgsError :: (Show a1, Show a2) => [Char] -> a1 -> a2 -> a3
 handleWrongNumberOfArgsError funcName noOfArgsDesired noOfArgsPassed =
   error $ "Wrong number of arguments passed to " ++ funcName ++ ". Expected: " ++ show n ++ " Got: " ++ show n'
   where
     n = noOfArgsDesired
     n' = noOfArgsPassed
 
+oneArgumentFunctionEval :: (Double -> Double) -> [Char] -> Expression -> StateT (M.Map String SymbolTableVal) IO EvalResult
 oneArgumentFunctionEval function functionName (Tuple arguments) =
   case length arguments of
     1 -> do
@@ -158,9 +161,9 @@ oneArgumentFunctionEval function functionName (Tuple arguments) =
       let g = makeEvalResult
           f = fromIntegral
           x = case val of
-            EvalResult {int = Just m}    -> function <$> Just (f m)
+            EvalResult {int = Just m} -> function <$> Just (f m)
             EvalResult {double = Just m} -> function <$> Just m
-            _                            -> Nothing
+            _ -> Nothing
       return $ g (Nothing, x, Nothing)
     _ -> handleWrongNumberOfArgsError functionName 1 (length arguments)
 
@@ -211,7 +214,7 @@ evalFunctions (Invoke "factorial" (Tuple arguments)) =
               else fact (acc * n) (n -1)
       return $ case val of
         EvalResult {int = Just m} -> g (Just (fact 1 m), Nothing, Nothing)
-        _                         -> g (Nothing, Nothing, Nothing)
+        _ -> g (Nothing, Nothing, Nothing)
     _ -> handleWrongNumberOfArgsError "factorial" 1 (length arguments)
 evalFunctions (Invoke functionName (Tuple arguments)) = do
   varTable <- get
@@ -224,9 +227,9 @@ evalFunctions (Invoke functionName (Tuple arguments)) = do
             then
               evalUserDefinedFunction
                 functionName
-                (map get_str_out_of_id argsNameList)
+                (map getStrOutOfId argsNameList)
                 statementsToExecute
-                (M.fromList (zip (map get_str_out_of_id argsNameList) (map Left arguments)))
+                (M.fromList (zip (map getStrOutOfId argsNameList) (map Left arguments)))
             else
               error $
                 "Expected " ++ show (length argsNameList) ++ " arguments for function " ++ functionName
@@ -241,33 +244,31 @@ foo x = do
   ans <- eval x
   return $ case ans of
     EvalResult {int = Just n} -> Left $ IntNode n
-    _                         -> Left $ IntNode 0
+    _ -> Left $ IntNode 0
 
 -- helper func
-get_str_out_of_id :: Expression -> String
-get_str_out_of_id x = case x of
+getStrOutOfId :: Expression -> String
+getStrOutOfId x = case x of
   Id name -> name
-  _       -> ""
+  _ -> ""
 
 -- this doesnt work at all
 -- I gotta make it work idk how
 --
 --
 
-conflict_resolve varTable k v1 v2 = case v1 of
+resolveConflict varTable k v1 v2 = case v1 of
   Left tok -> case tok of
     Id x -> case M.lookup x varTable of
       Nothing -> error $ x ++ " passed as parameter is invalid"
-      Just y -> case y of
-        Left val -> y
-        _        -> error "Functions arent first class citizens yet"
+      Just y -> y
     _ -> v1
   Right tok -> v1
 
 evalUserDefinedFunction :: String -> [String] -> [Statement] -> M.Map String SymbolTableVal -> Result EvalResult
 evalUserDefinedFunction functionName argsNameList statementsToExecute stackSymTable = do
   varTable <- get
-  modify $ M.unionWithKey (conflict_resolve varTable) stackSymTable
+  modify $ M.unionWithKey (resolveConflict varTable) stackSymTable
   varTable2 <- get
   execStateT (lift $ evalFunctionStaements statementsToExecute) varTable2
   modify $ flip (M.differenceWithKey (\k v1 v2 -> M.lookup k varTable)) stackSymTable
@@ -291,10 +292,10 @@ evalStatement (PrintStatement expr) = do
   ans <- eval expr
   let printVal val = liftIO $ print val
   case ans of
-    EvalResult {int = Just n}    -> printVal n
+    EvalResult {int = Just n} -> printVal n
     EvalResult {double = Just n} -> printVal n
-    EvalResult {bool = Just b}   -> printVal b
-    _                            -> error $ "Invalid expression: " ++ show expr
+    EvalResult {bool = Just b} -> printVal b
+    _ -> error $ "Invalid expression: " ++ show expr
 
 -- seq is used here because we want the
 -- expr to be evaluated for sure
@@ -320,10 +321,10 @@ evalStatement (Eval expr) = do
   a <- eval expr
   let f a = show a `seq` return ()
   case a of
-    EvalResult {int = Just m}    -> f m
+    EvalResult {int = Just m} -> f m
     EvalResult {double = Just m} -> f m
-    EvalResult {bool = Just m}   -> f m
-    _                            -> error $ "Invalid expression " ++ show expr
+    EvalResult {bool = Just m} -> f m
+    _ -> error $ "Invalid expression " ++ show expr
 evalStatement (Define (FunctionBody funcName functionArgs statements)) =
   modify $ M.insert funcName (Right $ FunctionBody funcName functionArgs statements)
 
